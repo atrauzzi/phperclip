@@ -1,9 +1,13 @@
 {
-	"name": "tippingcanoe/phperclip",
-	"description": "File attachment and management for Eloquent models",
-	"keywords": ["file","model","eloquent","attachment"],
-	"homepage": "https://github.com/bmartel/phperclip",
+	"name": "atrauzzi/phperclip",
+	"description": "File attachment and management for Eloquent models.",
+	"keywords": ["file","model","eloquent","attachment","image"],
+	"homepage": "https://github.com/atrauzzi/phperclip",
 	"authors": [
+		{
+			"name": "Alexander Trauzzi",
+			"email": "atrauzzi@gmail.com"
+		},
 		{
 			"name": "Brandon Martel",
 			"email": "b.martel@tippingcanoe.com"
@@ -12,22 +16,14 @@
 	"license": "MIT",
 	"require": {
 		"php": ">=5.4.0",
-		"aws/aws-sdk-php": "2.5.*",
-		"illuminate/http": "5.0.*",
-        "illuminate/database": "5.0.*",
-        "illuminate/config": "5.0.*",
+		"illuminate/http": "5.*",
+        "illuminate/database": "5.*",
+        "illuminate/config": "5.*",
 		"intervention/image": "2.0.*"
 	},
-	"require-dev" : {
-		"phpspec/phpspec": "2.0.*@dev",
-		"mockery/mockery": "0.9.*@dev"
-	},
 	"autoload": {
-		"classmap": [
-			"src/migrations"
-		],
 		"psr-0": {
-			"TippingCanoe\\Phperclip": "src/"
+			"Atrauzzi\\Phperclip": "src/"
 		}
 	},
 	"minimum-stability": "dev"

@@ -1,10 +1,10 @@
-<?php namespace TippingCanoe\Phperclip\Processes;
+<?php namespace Atrauzzi\Phperclip\Processor;
 
 use Illuminate\Contracts\Support\MessageProvider;
 use Illuminate\Support\MessageBag;
 use Symfony\Component\HttpFoundation\File\File;
-use TippingCanoe\Phperclip\Contracts\FileProcessor;
-use TippingCanoe\Phperclip\Model\File as FileModel;
+use Atrauzzi\Phperclip\Contracts\FileProcessor;
+use Atrauzzi\Phperclip\Model\FileMeta as FileModel;
 use Validator;
 
 class FileProcessorAdapter implements FileProcessor, MessageProvider {
@@ -54,7 +54,7 @@ class FileProcessorAdapter implements FileProcessor, MessageProvider {
 	 *
 	 * @param FileModel $fileModel
 	 * @param array $options
-	 * @return null|bool|\TippingCanoe\Phperclip\Model\File
+	 * @return null|bool|\Atrauzzi\Phperclip\Model\FileMeta
 	 */
 	public function onDelete(FileModel $fileModel, array $options = []) {
 
@@ -68,7 +68,7 @@ class FileProcessorAdapter implements FileProcessor, MessageProvider {
 	 *
 	 * @param FileModel $fileModel
 	 * @param array $options
-	 * @return null|bool|\TippingCanoe\Phperclip\Model\File
+	 * @return null|bool|\Atrauzzi\Phperclip\Model\FileMeta
 	 */
 	public function onMove(FileModel $fileModel, array $options = []) {
 

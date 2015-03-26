@@ -1,7 +1,7 @@
-<?php namespace TippingCanoe\Phperclip\Contracts;
+<?php namespace Atrauzzi\Phperclip\Contracts;
 
 use Symfony\Component\HttpFoundation\File\File;
-use \TippingCanoe\Phperclip\Model\File as FileModel;
+use \Atrauzzi\Phperclip\Model\FileMeta as FileModel;
 
 interface FileProcessor {
 
@@ -39,7 +39,7 @@ interface FileProcessor {
 	 *
 	 * @param FileModel $fileModel
 	 * @param array $options
-	 * @return null|bool|\TippingCanoe\Phperclip\Model\File
+	 * @return null|bool|\Atrauzzi\Phperclip\Model\FileMeta
 	 */
 	public function onDelete(FileModel $fileModel, array $options = []);
 
@@ -49,7 +49,7 @@ interface FileProcessor {
 	 *
 	 * @param FileModel $fileModel
 	 * @param array $options
-	 * @return null|bool|\TippingCanoe\Phperclip\Model\File
+	 * @return null|bool|\Atrauzzi\Phperclip\Model\FileMeta
 	 */
 	public function onMove(FileModel $fileModel, array $options = []);
 

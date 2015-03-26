@@ -9,9 +9,9 @@ return [
 	//
 	'shrink' => [
 
-		'TippingCanoe\Phperclip\Processes\Image\FixRotation',
+		'Atrauzzi\Phperclip\Processor\Image\FixRotation',
 		[
-			'TippingCanoe\Phperclip\Processes\Image\Resize',
+			'Atrauzzi\Phperclip\Processor\Image\Resize',
 			[
 				'width' => 100,
 				'height' => 100,
