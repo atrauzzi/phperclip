@@ -145,6 +145,7 @@
 				'mime_type' => array_get($head, 'Content-Type')
 			];
 
+			/** @var \Atrauzzi\Phperclip\Model\FileMeta $fileMeta  */
 			if($clippable)
 				$fileMeta = $clippable->files()->create($attributes);
 			else
