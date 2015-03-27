@@ -52,6 +52,13 @@
 		}
 
 		/**
+		 * @param string $diskName
+		 */
+		public function setLocalDiskName($diskName) {
+			$this->localDiskName = $diskName;
+		}
+
+		/**
 		 * @param string[] $prefixes
 		 */
 		public function setPublicPrefixes(array $prefixes) {
@@ -246,13 +253,6 @@
 		 */
 		protected function getDisk($disk = null) {
 			return $this->filesystem->disk($disk ?: $this->currentDisk);
-		}
-
-		/**
-		 * @param string $diskName
-		 */
-		protected function setLocalDiskName($diskName) {
-			$this->localDiskName = $diskName;
 		}
 
 		/**
