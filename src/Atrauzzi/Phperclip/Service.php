@@ -174,28 +174,6 @@
 
 		}
 
-		/**
-		 * Deletes a file (and all its derivaives if the original) by id.
-		 *
-		 * @param $id
-		 * @param array $options
-		 */
-		public function deleteById($id, array $options = []) {
-			if($file = $this->find($id))
-				$this->delete($file, $options);
-		}
-
-		/**
-		 * Deletes a file (and all its derivatives if the original) by clippable and slot.
-		 *
-		 * @param string $slot
-		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
-		 */
-		public function deleteBySlot(Clippable $clippable = null, $slot, $options = []) {
-			if($file = $this->findBySlot($slot, $clippable))
-				$this->delete($file, $options);
-		}
-
 		//
 		//
 		//
