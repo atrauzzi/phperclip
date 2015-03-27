@@ -1,12 +1,10 @@
 <?php namespace Atrauzzi\Phperclip {
 
-	use Atrauzzi\Phperclip\Repository\FileMeta as FileMetaRepository;
 	use Atrauzzi\Phperclip\Processor\Manager;
 	use Illuminate\Filesystem\FilesystemManager;
 	//
 	use Atrauzzi\Phperclip\Model\FileMeta;
 	use Atrauzzi\Phperclip\Model\Clippable;
-	use Symfony\Component\HttpFoundation\File\File;
 	use Exception;
 
 
@@ -24,6 +22,9 @@
 		/** @var string */
 		protected $localDiskName = 'local';
 
+		/** @var array */
+		protected $publicPrefixes;
+
 		/**
 		 * @param Manager $processManager
 		 * @param \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemManager $filesystem
@@ -32,8 +33,13 @@
 			Manager $processManager,
 			FilesystemManager $filesystem
 		) {
+
 			$this->processorManager = $processManager;
 			$this->filesystem = $filesystem;
+
+			// For now just rip the configs out of Laravel.
+			$this->setPublicPrefixes(config('phperclip.public_prefixes', []));
+
 		}
 
 		/**
@@ -46,59 +52,10 @@
 		}
 
 		/**
-		 * Gets the current or specified drive.
-		 *
-		 * @param null|string $disk
-		 * @return \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemAdapter
+		 * @param string[] $prefixes
 		 */
-		protected function getDisk($disk = null) {
-			return $this->filesystem->disk($disk ?: $this->currentDisk);
-		}
-
-		/**
-		 * @param string $diskName
-		 */
-		protected function setLocalDiskName($diskName) {
-			$this->localDiskName = $diskName;
-		}
-
-		/**
-		 * @return \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemAdapter
-		 */
-		protected function getLocalDisk() {
-			return $this->getDisk($this->localDiskName);
-		}
-
-		//
-		//
-		//
-
-		/**
-		 * Retrieves FileMeta by its id.
-		 *
-		 * @param int $id
-		 * @return Model\FileMeta
-		 */
-		public function find($id) {
-			return FileMeta::find($id);
-		}
-
-		/**
-		 * Obtains FileMeta by its Clippable and slot.
-		 *
-		 * @param string $slot
-		 * @param Clippable $clippable
-		 * @return \Atrauzzi\Phperclip\Model\FileMeta
-		 */
-		public function findBySlot($slot, Clippable $clippable = null) {
-
-			if($clippable)
-				$query = FileMeta::forClippable(get_class($clippable), $clippable->getKey());
-			else
-				$query = FileMeta::unattached();
-
-			return $query->inSlot($slot)->first();
-
+		public function setPublicPrefixes(array $prefixes) {
+			$this->publicPrefixes = $prefixes;
 		}
 
 		//
@@ -114,16 +71,18 @@
 		 */
 		public function getPublicUri(FileMeta $fileMeta, array $options = []) {
 
-			// This will ensure that the file exists.
-			$resource = $this->getResource($fileMeta, $options);
+			// This will ensure that the original or derivative exists.
+			$this->getResource($fileMeta, $options);
 
-			// ToDo: Move uri generating calls from drivers to here.
-			//return $this->getDriver()->getPublicUri($fileMeta, $options);
+			$publicPrefix = array_get($this->publicPrefixes, $this->currentDisk);
+
+			return $publicPrefix . $this->filePath($fileMeta, $options);
 
 		}
 
 		/**
 		 * Returns a resource identifier that points to the desired file.
+		 *
 		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
 		 * @param array $options
 		 * @return false|resource
@@ -143,87 +102,19 @@
 
 		}
 
-		/**
-		 * Returns a file URI based on the id of the original.
-		 *
-		 * @param $id
-		 * @return string
-		 */
-		public function getPublicUriById($id) {
-			return $this->getPublicUri($this->find($id));
-		}
+		//
+		//
+		//
 
 		/**
-		 * Returns a File URI based on the slot and clippable
+		 * Stream a file to storage.
 		 *
-		 * @param $slot
-		 * @param Clippable $clippable
-		 * @return null|string
-		 */
-		public function getPublicUriBySlot($slot, Clippable $clippable = null) {
-
-			if($file = $this->findBySlot($slot, $clippable)) {
-				return $this->getPublicUri($file);
-			}
-
-			return null;
-
-		}
-
-		/**
-		 * Get all the files by mimetype or slot, attached or unattached to a model
-		 *
-		 * @param null|Clippable $clippable
-		 * @param null|string|array $mimeTypes
-		 * @param null|string|int|array $slot
-		 * @return \Illuminate\Database\Eloquent\Collection
-		 */
-		public function getFilesFor(Clippable $clippable = null, $mimeTypes = null, $slot = null) {
-
-			$query = $clippable ? $clippable->files() : FileMeta::query();
-
-			// Filter by slot(s)
-			if($slot) {
-
-				$slot = is_array($slot) ? $slot : [$slot];
-
-				$query->whereIn('slot', $slot);
-
-			}
-
-			// Filter by file type(s)
-			if($mimeTypes) {
-				$mimeTypes = (array)$mimeTypes;
-				$query->whereIn('mime_type', $mimeTypes);
-			}
-
-			return $query->get();
-
-		}
-
-		/**
-		 * Saves a new file from the servers filesystem.
-		 *
-		 * @param File $file
-		 * @param Clippable $clippable
+		 * @param $resource
+		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
 		 * @param array $options
-		 * @return null|FileMeta
 		 */
-		public function saveFromFile(File $file, Clippable $clippable = null, array $options = []) {
-
-			// Create the original file record
-			$newFile = $this->createFileRecord($file, $options);
-			$this->saveOriginalFile($file, $newFile);
-
-			// Optionally attach the file to a model
-			if($clippable) {
-				$clippable->clippedFiles()->save($newFile);
-			}
-
-			// Save a modified copy of the original file
-			$this->saveFromResource($this->getDriver()->tempOriginal($newFile), $newFile, $options);
-
-			return $newFile;
+		public function saveFromResource($resource, FileMeta $fileMeta, array $options) {
+			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
 		}
 
 		/**
@@ -275,7 +166,7 @@
 
 			if(empty($options)) {
 				$this->getDisk()->deleteDirectory($this->fileDirectory($fileMeta, $options));
-				$fileMeta->forceDelete();
+				$fileMeta->delete();
 			}
 			else {
 				$this->getDisk()->delete($this->filePath($fileMeta, $options));
@@ -336,17 +227,6 @@
 		}
 
 		/**
-		 * Stream a file to storage.
-		 *
-		 * @param $resource
-		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
-		 * @param array $options
-		 */
-		protected function saveFromResource($resource, FileMeta $fileMeta, array $options) {
-			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
-		}
-
-		/**
 		 * Generates a file name to use for storage.
 		 *
 		 * ToDo: Cache this.
@@ -378,6 +258,30 @@
 		 */
 		public function fileDirectory(FileMeta $fileMeta, array $options) {
 			return $fileMeta->getKey();
+		}
+
+		/**
+		 * Gets the current or specified drive.
+		 *
+		 * @param null|string $disk
+		 * @return \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemAdapter
+		 */
+		protected function getDisk($disk = null) {
+			return $this->filesystem->disk($disk ?: $this->currentDisk);
+		}
+
+		/**
+		 * @param string $diskName
+		 */
+		protected function setLocalDiskName($diskName) {
+			$this->localDiskName = $diskName;
+		}
+
+		/**
+		 * @return \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemAdapter
+		 */
+		protected function getLocalDisk() {
+			return $this->getDisk($this->localDiskName);
 		}
 
 		/**
