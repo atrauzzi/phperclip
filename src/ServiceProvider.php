@@ -28,6 +28,8 @@
 		 */
 		protected function registerPackage() {
 
+			$this->app->alias('filesystem', 'Illuminate\Filesystem\FilesystemManager');
+
 			$this->publishes([
 				sprintf('%s/../config/config.php', __DIR__) => config_path('phperclip.php'),
 				sprintf('%s/../config/filters.php', __DIR__) => config_path('phperclip_filters.php'),

@@ -114,14 +114,14 @@
 		//
 
 		/**
-		 * Stream a file to storage.
-		 *
 		 * @param $resource
-		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param null|string $slot
 		 * @param array $options
+		 * @throws \Exception
 		 */
-		public function saveFromResource($resource, FileMeta $fileMeta, array $options) {
-			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
+		public function save($resource, Clippable $clippable = null, $slot = null, array $options = []) {
+			throw new \Exception('Not yet implemented!');
 		}
 
 		/**
@@ -129,20 +129,23 @@
 		 *
 		 * @param string $uri
 		 * @param Clippable $clippable
+		 * @param null|string $slot
 		 * @param array $options
 		 * @return \Atrauzzi\Phperclip\Model\FileMeta|null
 		 * @throws \Exception
 		 */
-		public function saveFromUri($uri, Clippable $clippable = null, array $options = []) {
+		public function saveFromUri($uri, Clippable $clippable = null, $slot = null, array $options = []) {
 
-			stream_context_set_default(['http' => [ 'method' => 'HEAD' ]]);
+			stream_context_set_default(['http' => ['method' => 'HEAD']]);
 			$head = get_headers($uri, true);
-			stream_context_set_default([]);
+			$mimeType = (array)array_get($head, 'Content-Type');
+			stream_context_set_default(['http' => ['method' => 'GET']]);
 
 			$remoteResource = fopen($uri, 'r');
 
 			$attributes = [
-				'mime_type' => array_get($head, 'Content-Type')
+				'mime_type' => array_pop($mimeType),
+				'slot' => $slot
 			];
 
 			/** @var \Atrauzzi\Phperclip\Model\FileMeta $fileMeta  */
@@ -185,6 +188,17 @@
 		//
 		//
 		//
+
+		/**
+		 * Stream a file to storage.
+		 *
+		 * @param $resource
+		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
+		 * @param array $options
+		 */
+		protected function saveFromResource($resource, FileMeta $fileMeta, array $options) {
+			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
+		}
 
 		/**
 		 * Load an original image locally, trigger events and then save it as a derivative.

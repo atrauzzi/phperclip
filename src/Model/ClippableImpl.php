@@ -4,7 +4,7 @@
 	trait ClippableImpl {
 
 		public function files() {
-			return $this->morphMany('Atrauzzi\Phperclip\Model\File', 'clippable');
+			return $this->morphMany('Atrauzzi\Phperclip\Model\FileMeta', 'clippable');
 		}
 
 	}
