@@ -17,25 +17,11 @@ class CreateFileMetaTable extends Migration {
 
 			$table->increments('id');
 
-			$table->unsignedInteger('clippable_id')->nullable();
-
-			$table->string('clippable_type')->nullable();
-
-			$table->string('slot')->nullable();
+			$table->string('disk');
 
 			$table->string('mime_type');
 
 			$table->timestamps();
-
-			//
-			// Indexes
-			//
-
-			$table->unique([
-				'clippable_id',
-				'clippable_type',
-				'slot'
-			]);
 
 		});
 

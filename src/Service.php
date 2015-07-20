@@ -4,6 +4,7 @@
 	use Illuminate\Filesystem\FilesystemManager;
 	//
 	use Atrauzzi\Phperclip\Model\FileMeta;
+	use Atrauzzi\Phperclip\Model\Clipping;
 	use Atrauzzi\Phperclip\Model\Clippable;
 	use Exception;
 
@@ -18,9 +19,6 @@
 
 		/** @var \Atrauzzi\Phperclip\Processor\Manager */
 		protected $processorManager;
-
-		/** @var string */
-		protected $localDiskName = 'local';
 
 		/** @var array */
 		protected $publicPrefixes;
@@ -49,13 +47,6 @@
 		 */
 		public function useDisk($drive) {
 			$this->currentDisk = $drive;
-		}
-
-		/**
-		 * @param string $diskName
-		 */
-		public function setLocalDiskName($diskName) {
-			$this->localDiskName = $diskName;
 		}
 
 		/**
@@ -130,11 +121,10 @@
 		 * @param string $uri
 		 * @param Clippable $clippable
 		 * @param null|string $slot
-		 * @param array $options
-		 * @return \Atrauzzi\Phperclip\Model\FileMeta|null
+		 * @return \Atrauzzi\Phperclip\Model\Clipping|null
 		 * @throws \Exception
 		 */
-		public function saveFromUri($uri, Clippable $clippable = null, $slot = null, array $options = []) {
+		public function saveFromUri($uri, Clippable $clippable = null, $slot = null) {
 
 			stream_context_set_default(['http' => ['method' => 'HEAD']]);
 			$head = get_headers($uri, true);
@@ -143,27 +133,27 @@
 
 			$remoteResource = fopen($uri, 'r');
 
-			$attributes = [
+			$fileMeta = FileMeta::create([
 				'mime_type' => array_pop($mimeType),
-				'slot' => $slot
-			];
-
-			/** @var \Atrauzzi\Phperclip\Model\FileMeta $fileMeta  */
-			if($clippable)
-				$fileMeta = $clippable->files()->create($attributes);
-			else
-				$fileMeta = FileMeta::create($attributes);
+				'disk' => $this->currentDisk,
+			]);
 
 			try {
-				$this->saveFromResource($remoteResource, $fileMeta, $options);
+				$this->saveFromResource($remoteResource, $fileMeta);
 			}
 			catch(Exception $ex) {
 				$fileMeta->forceDelete();
 				throw $ex;
 			}
 
+			/** @var \Atrauzzi\Phperclip\Model\Clipping $clipping */
+			$clipping = $fileMeta->clippings()->create([
+				'slot' => $slot,
+			]);
+
 			fclose($remoteResource);
-			return $fileMeta;
+
+			return $clipping;
 
 		}
 
@@ -196,7 +186,7 @@
 		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
 		 * @param array $options
 		 */
-		protected function saveFromResource($resource, FileMeta $fileMeta, array $options) {
+		protected function saveFromResource($resource, FileMeta $fileMeta, array $options = []) {
 			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
 		}
 
@@ -209,16 +199,15 @@
 		 */
 		protected function generateDerivative(FileMeta $fileMeta, array $options) {
 
-			$originalResource = $this->getResource($fileMeta, []);
-
-			$tempFilePath = uniqid('phperclip/');
-
-			$this->getLocalDisk()->getDriver()->putStream($tempFilePath, $originalResource);
-			$localResource = $this->getLocalDisk()->getDriver()->readStream($tempFilePath);
+			$originalResource = $this->getResource($fileMeta);
+			$tempFile = tmpfile();
+			stream_copy_to_stream($originalResource, $tempFile);
+			rewind($tempFile);
 
 			// ToDo: Emit before-save event.
 
-			$this->saveFromResource($localResource, $fileMeta, $options);
+			rewind($tempFile);
+			$this->saveFromResource($tempFile, $fileMeta, $options);
 
 			// ToDo: Emit after-save event.
 
@@ -268,13 +257,6 @@
 		 */
 		protected function getDisk($disk = null) {
 			return $this->filesystem->disk($disk ?: $this->currentDisk);
-		}
-
-		/**
-		 * @return \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemAdapter
-		 */
-		protected function getLocalDisk() {
-			return $this->getDisk($this->localDiskName);
 		}
 
 		/**

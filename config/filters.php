@@ -1,6 +1,5 @@
-<?php
+<?php return [
 
-return [
 	// Sample Image Filter
 
 	// Example usage:
@@ -18,5 +17,7 @@ return [
 				'preserve_ratio' => true,
 			]
 		]
+
 	]
+
 ];
