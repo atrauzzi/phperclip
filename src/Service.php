@@ -105,33 +105,15 @@
 		//
 
 		/**
-		 * @param $resource
-		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
-		 * @param null|string $slot
-		 * @param array $options
-		 * @throws \Exception
-		 */
-		public function save($resource, Clippable $clippable = null, $slot = null, array $options = []) {
-			throw new \Exception('Not yet implemented!');
-		}
-
-		/**
-		 * Saves a file from a URI.
+		 * Saves a file from a resource.  This is the "purest" variant of save.
 		 *
-		 * @param string $uri
-		 * @param Clippable $clippable
+		 * @param $resource
 		 * @param null|string $slot
-		 * @return \Atrauzzi\Phperclip\Model\Clipping|null
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @return \Atrauzzi\Phperclip\Model\Clipping
 		 * @throws \Exception
 		 */
-		public function saveFromUri($uri, Clippable $clippable = null, $slot = null) {
-
-			stream_context_set_default(['http' => ['method' => 'HEAD']]);
-			$head = get_headers($uri, true);
-			$mimeType = (array)array_get($head, 'Content-Type');
-			stream_context_set_default(['http' => ['method' => 'GET']]);
-
-			$remoteResource = fopen($uri, 'r');
+		public function save($resource, $slot = null, Clippable $clippable = null) {
 
 			$fileMeta = FileMeta::create([
 				'mime_type' => array_pop($mimeType),
@@ -139,7 +121,7 @@
 			]);
 
 			try {
-				$this->saveFromResource($remoteResource, $fileMeta);
+				$this->saveFromResource($resource, $fileMeta);
 			}
 			catch(Exception $ex) {
 				$fileMeta->forceDelete();
@@ -151,9 +133,51 @@
 				'slot' => $slot,
 			]);
 
-			fclose($remoteResource);
-
 			return $clipping;
+
+		}
+
+		/**
+		 * Saves a file from a PHP-accessible path.
+		 *
+		 * @param string $path
+		 * @param null|string $slot
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @return \Atrauzzi\Phperclip\Model\Clippable|\Atrauzzi\Phperclip\Model\Clipping
+		 * @throws \Exception
+		 */
+		public function saveFromPath($path, $slot = null, Clippable $clippable) {
+
+			$resource = fopen($path, 'r');
+
+			$clippable = $this->save($resource, $slot, $clippable);
+
+			fclose($resource);
+			return $clippable;
+
+		}
+
+		/**
+		 * Saves a file from a URI.
+		 *
+		 * @param string $uri
+		 * @param Clippable $clippable
+		 * @param null|string $slot
+		 * @return \Atrauzzi\Phperclip\Model\Clipping|null
+		 * @throws \Exception
+		 */
+		public function saveFromUri($uri, $slot = null, Clippable $clippable = null) {
+
+			stream_context_set_default(['http' => ['method' => 'HEAD']]);
+			$head = get_headers($uri, true);
+			$mimeType = (array)array_get($head, 'Content-Type');
+			stream_context_set_default(['http' => ['method' => 'GET']]);
+			$remoteResource = fopen($uri, 'r');
+
+			$clippable = $this->save($remoteResource, $slot, $clippable);
+
+			fclose($remoteResource);
+			return $clippable;
 
 		}
 
