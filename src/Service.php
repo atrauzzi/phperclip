@@ -100,6 +100,19 @@
 
 		}
 
+		/**
+		 * @param string $name
+		 * @param \Atrauzzi\Phperclip\Model\Clippable|null $clippable
+		 * @return int
+		 */
+		public function exists($name, Clippable $clippable = null) {
+			return FileMeta
+				::named($name)
+				->clippedTo($clippable)
+				->count()
+			;
+		}
+
 		//
 		//
 		//
