@@ -125,16 +125,20 @@
 		 * @param null|string $name
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
 		 * @param null|string $slot
-		 * @return \Atrauzzi\Phperclip\Model\Clipping
+		 * @return \Atrauzzi]Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
 		public function save($resource, $mimeType, $name = null, Clippable $clippable = null, $slot = null) {
 
-			$fileMeta = FileMeta::create([
-				'mime_type' => $mimeType,
-				'disk' => $this->currentDisk,
-				'name' => $name,
-			]);
+			$fileMeta = FileMeta::updateOrCreate(
+				[
+					'name' => $name,
+				],
+				[
+					'mime_type' => $mimeType,
+					'disk' => $this->currentDisk,
+				]
+			);
 
 			try {
 				$this->saveFromResource($resource, $fileMeta);
@@ -144,12 +148,13 @@
 				throw $ex;
 			}
 
-			/** @var \Atrauzzi\Phperclip\Model\Clipping $clipping */
-			$clipping = $fileMeta->clippings()->create([
-				'slot' => $slot,
-			]);
+			if($clippable) {
+				$fileMeta->clippings()->create([
+					'slot' => $slot,
+				]);
+			}
 
-			return $clipping;
+			return $fileMeta;
 
 		}
 
@@ -160,7 +165,7 @@
 		 * @param null|string $name
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
 		 * @param null|string $slot
-		 * @return \Atrauzzi\Phperclip\Model\Clippable|\Atrauzzi\Phperclip\Model\Clipping
+		 * @return \Atrauzzi]Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
 		public function saveFromPath($path, $name = null, Clippable $clippable, $slot = null) {
@@ -170,10 +175,10 @@
 			$finfoDb = finfo_open(FILEINFO_MIME_TYPE);
 			$mimeType = finfo_file($finfoDb, $path);
 
-			$clippable = $this->save($resource, $mimeType, $name, $clippable, $slot);
+			$fileMeta = $this->save($resource, $mimeType, $name, $clippable, $slot);
 
 			fclose($resource);
-			return $clippable;
+			return $fileMeta;
 
 		}
 
@@ -184,7 +189,7 @@
 		 * @param null|string $name
 		 * @param Clippable $clippable
 		 * @param null|string $slot
-		 * @return \Atrauzzi\Phperclip\Model\Clipping|null
+		 * @return \Atrauzzi]Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
 		public function saveFromUri($uri, $name = null, Clippable $clippable = null, $slot = null) {
@@ -195,10 +200,10 @@
 			stream_context_set_default(['http' => ['method' => 'GET']]);
 			$remoteResource = fopen($uri, 'r');
 
-			$clippable = $this->save($remoteResource, array_pop($mimeType), $name, $clippable, $slot);
+			$fileMeta = $this->save($remoteResource, array_pop($mimeType), $name, $clippable, $slot);
 
 			fclose($remoteResource);
-			return $clippable;
+			return $fileMeta;
 
 		}
 
