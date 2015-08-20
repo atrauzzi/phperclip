@@ -122,16 +122,18 @@
 		 *
 		 * @param $resource
 		 * @param string $mimeType
-		 * @param null|string $slot
+		 * @param null|string $name
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param null|string $slot
 		 * @return \Atrauzzi\Phperclip\Model\Clipping
 		 * @throws \Exception
 		 */
-		public function save($resource, $mimeType, $slot = null, Clippable $clippable = null) {
+		public function save($resource, $mimeType, $name = null, Clippable $clippable = null, $slot = null) {
 
 			$fileMeta = FileMeta::create([
 				'mime_type' => $mimeType,
 				'disk' => $this->currentDisk,
+				'name' => $name,
 			]);
 
 			try {
@@ -155,19 +157,20 @@
 		 * Saves a file from a PHP-accessible path.
 		 *
 		 * @param string $path
-		 * @param null|string $slot
+		 * @param null|string $name
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param null|string $slot
 		 * @return \Atrauzzi\Phperclip\Model\Clippable|\Atrauzzi\Phperclip\Model\Clipping
 		 * @throws \Exception
 		 */
-		public function saveFromPath($path, $slot = null, Clippable $clippable) {
+		public function saveFromPath($path, $name = null, Clippable $clippable, $slot = null) {
 
 			$resource = fopen($path, 'r');
 
 			$finfoDb = finfo_open(FILEINFO_MIME_TYPE);
 			$mimeType = finfo_file($finfoDb, $path);
 
-			$clippable = $this->save($resource, '?!?!', $slot, $clippable);
+			$clippable = $this->save($resource, $mimeType, $name, $clippable, $slot);
 
 			fclose($resource);
 			return $clippable;
@@ -178,12 +181,13 @@
 		 * Saves a file from a URI.
 		 *
 		 * @param string $uri
+		 * @param null|string $name
 		 * @param Clippable $clippable
 		 * @param null|string $slot
 		 * @return \Atrauzzi\Phperclip\Model\Clipping|null
 		 * @throws \Exception
 		 */
-		public function saveFromUri($uri, $slot = null, Clippable $clippable = null) {
+		public function saveFromUri($uri, $name = null, Clippable $clippable = null, $slot = null) {
 
 			stream_context_set_default(['http' => ['method' => 'HEAD']]);
 			$head = get_headers($uri, true);
@@ -191,7 +195,7 @@
 			stream_context_set_default(['http' => ['method' => 'GET']]);
 			$remoteResource = fopen($uri, 'r');
 
-			$clippable = $this->save($remoteResource, array_pop($mimeType), $slot, $clippable);
+			$clippable = $this->save($remoteResource, array_pop($mimeType), $name, $clippable, $slot);
 
 			fclose($remoteResource);
 			return $clippable;
