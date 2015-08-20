@@ -121,15 +121,16 @@
 		 * Saves a file from a resource.  This is the "purest" variant of save.
 		 *
 		 * @param $resource
+		 * @param string $mimeType
 		 * @param null|string $slot
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
 		 * @return \Atrauzzi\Phperclip\Model\Clipping
 		 * @throws \Exception
 		 */
-		public function save($resource, $slot = null, Clippable $clippable = null) {
+		public function save($resource, $mimeType, $slot = null, Clippable $clippable = null) {
 
 			$fileMeta = FileMeta::create([
-				'mime_type' => array_pop($mimeType),
+				'mime_type' => $mimeType,
 				'disk' => $this->currentDisk,
 			]);
 
@@ -163,7 +164,10 @@
 
 			$resource = fopen($path, 'r');
 
-			$clippable = $this->save($resource, $slot, $clippable);
+			$finfoDb = finfo_open(FILEINFO_MIME_TYPE);
+			$mimeType = finfo_file($finfoDb, $path);
+
+			$clippable = $this->save($resource, '?!?!', $slot, $clippable);
 
 			fclose($resource);
 			return $clippable;
@@ -187,7 +191,7 @@
 			stream_context_set_default(['http' => ['method' => 'GET']]);
 			$remoteResource = fopen($uri, 'r');
 
-			$clippable = $this->save($remoteResource, $slot, $clippable);
+			$clippable = $this->save($remoteResource, array_pop($mimeType), $slot, $clippable);
 
 			fclose($remoteResource);
 			return $clippable;
