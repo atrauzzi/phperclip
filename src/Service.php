@@ -37,6 +37,7 @@
 
 			// For now just rip the configs out of Laravel.
 			$this->setPublicPrefixes(config('phperclip.public_prefixes', []));
+			$this->currentDisk = config('filesystems.default', 'local');
 
 		}
 

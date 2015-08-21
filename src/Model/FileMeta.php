@@ -13,7 +13,7 @@
 		/** @var array */
 		protected $fillable = [
 			'name',
-			'driver',
+			'disk',
 			'mime_type',
 		];
 
