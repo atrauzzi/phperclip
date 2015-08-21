@@ -12,6 +12,7 @@
 			'clippable_type',
 			'clippable_id',
 			'slot',
+			'file_meta_id',
 		];
 
 		/**

@@ -113,6 +113,23 @@
 			;
 		}
 
+		/**
+		 * Associate a Clippable to a FileMeta
+		 *
+		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param null|string $slot
+		 */
+		public function attach(FileMeta $fileMeta, Clippable $clippable, $slot = null) {
+			$clippable
+				->files()
+				->create([
+					'file_meta_id' => $fileMeta->getKey(),
+					'slot' => $slot,
+				])
+			;
+		}
+
 		//
 		//
 		//
@@ -148,11 +165,8 @@
 				throw $ex;
 			}
 
-			if($clippable) {
-				$fileMeta->clippings()->create([
-					'slot' => $slot,
-				]);
-			}
+			if($clippable)
+				$this->attach($fileMeta, $clippable, $slot);
 
 			return $fileMeta;
 

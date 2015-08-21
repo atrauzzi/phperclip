@@ -62,6 +62,8 @@
 		 */
 		public function scopeClippedTo(Builder $builder, $clippableOrType, $clippableId = null) {
 
+			$builder = $builder->join('phperclip_clipping', 'phperclip_clipping.file_meta_id', '=', 'phperclip_file_meta.id');
+
 			if($clippableOrType instanceof Clippable) {
 				$clippableType = $clippableOrType->getMorphClass();
 				$clippableId = $clippableOrType->getKey();
@@ -73,11 +75,12 @@
 				throw new Exception(sprintf('Invalid clippable type %s/%s.', $clippableOrType, $clippableId));
 			}
 
-			return $builder
-				->join('phperclip_clipping', 'phperclip_clipping.file_meta_id', '=', 'phperclip_file_meta.id')
+			if(!empty($clippableType) && !empty($clippableId)) $builder = $builder
 				->where('phperclip_clipping.clippable_type', $clippableType)
 				->where('phperclip_clipping.clippable_id', $clippableId)
 			;
+
+			return $builder;
 
 		}
 
