@@ -24,10 +24,14 @@
 			return $this->hasMany('Atrauzzi\Phperclip\Model\Clipping');
 		}
 
+		//
+		//
+		//
+
 		/**
 		 * Get the mimetype of the File
 		 *
-		 * @return mixed
+		 * @return string
 		 */
 		public function getMimeType() {
 			return $this->mime_type;
@@ -43,6 +47,21 @@
 		}
 
 		/**
+		 * Gets the Laravel disk we know the file is stored on
+		 *
+		 * @return string
+		 */
+		public function getDisk() {
+			return $this->disk;
+		}
+
+		//
+		//
+		//
+
+		/**
+		 * Filters FileMeta results by name
+		 *
 		 * @param \Illuminate\Database\Eloquent\Builder $builder
 		 * @param string $name
 		 * @return \Illuminate\Database\Eloquent\Builder

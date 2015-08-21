@@ -73,7 +73,7 @@
 			// This will ensure that the original or derivative exists.
 			$this->getResource($fileMeta, $options);
 
-			$publicPrefix = array_get($this->publicPrefixes, $this->currentDisk);
+			$publicPrefix = array_get($this->publicPrefixes, $fileMeta->getDisk());
 
 			return $publicPrefix . $this->filePath($fileMeta, $options);
 
