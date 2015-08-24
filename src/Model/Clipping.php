@@ -2,6 +2,7 @@
 
 	use Illuminate\Database\Eloquent\Model;
 	use Illuminate\Database\Eloquent\Builder;
+	use Exception;
 
 
 	class Clipping extends Model {
@@ -35,15 +36,29 @@
 
 		/**
 		 * @param \Illuminate\Database\Eloquent\Builder|Builder $query
-		 * @param string $type
-		 * @param int $id
+		 * @param string|\Atrauzzi\Phperclip\Model\Clippable $clippableOrType
+		 * @param int|string $clippableId
 		 * @return \Illuminate\Database\Eloquent\Builder
+		 * @throws \Exception
 		 */
-		public function scopeForClippable(Builder $query, $type, $id) {
+		public function scopeForClippable(Builder $query, $clippableOrType, $clippableId = null) {
+
+			if($clippableOrType instanceof Clippable) {
+				$clippableType = $clippableOrType->getMorphClass();
+				$clippableId = $clippableOrType->getKey();
+			}
+			elseif($clippableOrType && $clippableId) {
+				$clippableType = $clippableOrType;
+			}
+			else {
+				throw new Exception(sprintf('Invalid clippable type %s/%s.', $clippableOrType, $clippableId));
+			}
+
 			return $query
-				->where('clippable_type', $type)
-				->where('clippable_id', $id)
+				->where('clippable_type', $clippableType)
+				->where('clippable_id', $clippableId)
 			;
+
 		}
 
 		/**
@@ -114,6 +129,20 @@
 		 */
 		public function scopeInIntegerSlot(Builder $query) {
 			return $query->whereRaw(sprintf('%s.slot REGEXP \'^[[:digit:]]+$\'', $query->getQuery()->from));
+		}
+
+		/**
+		 * Only returns clippings for specifically named files.
+		 *
+		 * @param \Illuminate\Database\Eloquent\Builder $query
+		 * @param string $name
+		 * @return Builder
+		 */
+		public function scopeNamed(Builder $query, $name) {
+			return $query
+				->join('phperclip_file_meta', 'phperclip_file_meta.id', '=', 'phperclip_clipping.file_meta_id')
+				->where('phperclip_file_meta.name', $name)
+			;
 		}
 
 	}

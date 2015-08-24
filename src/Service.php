@@ -7,6 +7,8 @@
 	use Atrauzzi\Phperclip\Model\Clipping;
 	use Atrauzzi\Phperclip\Model\Clippable;
 	use Exception;
+	use Illuminate\Support\Facades\DB;
+	use Illuminate\Support\Facades\Event;
 
 
 	class Service {
@@ -102,20 +104,56 @@
 		}
 
 		/**
-		 * @param string $name
-		 * @param \Atrauzzi\Phperclip\Model\Clippable|null $clippable
-		 * @return int
+		 * Does the right thing and saves/updates a file against a clippable.
+		 *
+		 * @param \Atrauzzi\Phperclip\Model\FileMeta|resource|string|null $file
+		 * @param null $name
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param null $slot
+		 * @return \Atrauzzi\PhperClip\Model\FileMeta
+		 * @throws \Exception
 		 */
-		public function exists($name, Clippable $clippable = null) {
-			return FileMeta
-				::named($name)
-				->clippedTo($clippable)
-				->count()
-			;
+		public function clip($file, $name = null, Clippable $clippable, $slot = null) {
+
+			$fileMeta = null;
+
+			// If the caller just derped out.
+			if(!$file && !$name)
+				throw new Exception('You must provide something to attach to the Clippable.');
+
+			// If the file requested doesn't exist.
+			if($name && !$file && !$fileMeta = $this->find($name))
+				throw new Exception('Unable to find a file by that name.');
+
+			// If the file already exists and we want to overwrite it.
+			if($file && $name && $fileMeta)
+				$this->delete($fileMeta);
+
+			if($file && !$fileMeta)
+				$fileMeta = $this->save($file, $name);
+
+			if(!$fileMeta)
+				throw new Exception('Unable to save file.');
+
+			if($clippable) {
+
+				/** @var \Illuminate\Database\Eloquent\Model|\Atrauzzi\Phperclip\Model\Clippable $existingClipping */
+				if($slot && $existingClipping = Clipping::select('phperclip_clipping.*')->inSlot($slot)->named($name)->forClippable($clippable)->first()) {
+					$existingClipping->update([
+						'slot' => null,
+					]);
+				}
+
+				$this->attach($fileMeta, $clippable, $slot);
+
+			}
+
+			return $fileMeta;
+
 		}
 
 		/**
-		 * Associate a Clippable to a FileMeta
+		 * Associate a FileMeta to a Clippable
 		 *
 		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
 		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
@@ -136,17 +174,47 @@
 		//
 
 		/**
+		 * @param string $name
+		 * @param \Atrauzzi\Phperclip\Model\Clippable|null $clippable
+		 * @return \Atrauzzi\PhperClip\Model\FileMeta
+		 */
+		public function find($name, Clippable $clippable = null) {
+			return FileMeta
+				::named($name)
+				->clippedTo($clippable)
+				->first()
+			;
+		}
+
+		/**
+		 * Convenient auto-guessing save router.
+		 *
+		 * @param resource|string $file
+		 * @param null|string $name
+		 * @return \Atrauzzi\Phperclip\Model\FileMeta
+		 * @throws \Exception
+		 */
+		public function save($file, $name = null) {
+			if(filter_var($file, FILTER_VALIDATE_URL))
+				return $this->saveFromUrl($file, $name);
+			elseif(is_resource($file))
+				return $this->saveFromResource($file, $name);
+			elseif(file_exists($file))
+				return $this->saveFromPath($file, $name);
+			else
+				throw new Exception(sprintf('Unable to save %s', $file));
+		}
+
+		/**
 		 * Saves a file from a resource.  This is the "purest" variant of save.
 		 *
 		 * @param $resource
 		 * @param string $mimeType
 		 * @param null|string $name
-		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
-		 * @param null|string $slot
 		 * @return \Atrauzzi]Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
-		public function save($resource, $mimeType, $name = null, Clippable $clippable = null, $slot = null) {
+		public function saveFromResource($resource, $mimeType, $name = null) {
 
 			$fileMeta = FileMeta::updateOrCreate(
 				[
@@ -159,15 +227,12 @@
 			);
 
 			try {
-				$this->saveFromResource($resource, $fileMeta);
+				$this->saveResource($resource, $fileMeta);
 			}
 			catch(Exception $ex) {
 				$fileMeta->forceDelete();
 				throw $ex;
 			}
-
-			if($clippable)
-				$this->attach($fileMeta, $clippable, $slot);
 
 			return $fileMeta;
 
@@ -178,19 +243,17 @@
 		 *
 		 * @param string $path
 		 * @param null|string $name
-		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
-		 * @param null|string $slot
-		 * @return \Atrauzzi]Phperclip\Model\FileMeta
+		 * @return \Atrauzzi\Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
-		public function saveFromPath($path, $name = null, Clippable $clippable, $slot = null) {
+		public function saveFromPath($path, $name = null) {
 
 			$resource = fopen($path, 'r');
 
 			$finfoDb = finfo_open(FILEINFO_MIME_TYPE);
 			$mimeType = finfo_file($finfoDb, $path);
 
-			$fileMeta = $this->save($resource, $mimeType, $name, $clippable, $slot);
+			$fileMeta = $this->saveFromResource($resource, $mimeType, $name);
 
 			fclose($resource);
 			return $fileMeta;
@@ -198,16 +261,14 @@
 		}
 
 		/**
-		 * Saves a file from a URI.
+		 * Saves a file from a URL.
 		 *
 		 * @param string $uri
 		 * @param null|string $name
-		 * @param Clippable $clippable
-		 * @param null|string $slot
-		 * @return \Atrauzzi]Phperclip\Model\FileMeta
+		 * @return \Atrauzzi\Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
-		public function saveFromUri($uri, $name = null, Clippable $clippable = null, $slot = null) {
+		public function saveFromUrl($uri, $name = null) {
 
 			stream_context_set_default(['http' => ['method' => 'HEAD']]);
 			$head = get_headers($uri, true);
@@ -215,7 +276,7 @@
 			stream_context_set_default(['http' => ['method' => 'GET']]);
 			$remoteResource = fopen($uri, 'r');
 
-			$fileMeta = $this->save($remoteResource, array_pop($mimeType), $name, $clippable, $slot);
+			$fileMeta = $this->saveFromResource($remoteResource, array_pop($mimeType), $name);
 
 			fclose($remoteResource);
 			return $fileMeta;
@@ -223,7 +284,7 @@
 		}
 
 		/**
-		 * Delete a file (and all its derivatives if the original).
+		 * Delete a FileMeta's file (and all its derivatives if the original).
 		 *
 		 * @param FileMeta $fileMeta
 		 * @param array $options
@@ -251,7 +312,7 @@
 		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
 		 * @param array $options
 		 */
-		protected function saveFromResource($resource, FileMeta $fileMeta, array $options = []) {
+		protected function saveResource($resource, FileMeta $fileMeta, array $options = []) {
 			$this->getDisk()->getDriver()->putStream($this->filePath($fileMeta, $options), $resource);
 		}
 
