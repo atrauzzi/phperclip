@@ -1,14 +1,12 @@
 <?php namespace Atrauzzi\Phperclip {
 
-	use Atrauzzi\Phperclip\Processor\Manager;
 	use Illuminate\Filesystem\FilesystemManager;
 	//
 	use Atrauzzi\Phperclip\Model\FileMeta;
 	use Atrauzzi\Phperclip\Model\Clipping;
 	use Atrauzzi\Phperclip\Model\Clippable;
+	use Atrauzzi\Phperclip\Processor\Contract as Processor;
 	use Exception;
-	use Illuminate\Support\Facades\DB;
-	use Illuminate\Support\Facades\Event;
 
 
 	class Service {
@@ -19,22 +17,14 @@
 		/** @var string */
 		protected $currentDisk;
 
-		/** @var \Atrauzzi\Phperclip\Processor\Manager */
-		protected $processorManager;
-
 		/** @var array */
 		protected $publicPrefixes;
 
 		/**
-		 * @param Manager $processManager
 		 * @param \Illuminate\Contracts\Filesystem\Filesystem|\Illuminate\Filesystem\FilesystemManager $filesystem
 		 */
-		public function __construct(
-			Manager $processManager,
-			FilesystemManager $filesystem
-		) {
+		public function __construct(FilesystemManager $filesystem) {
 
-			$this->processorManager = $processManager;
 			$this->filesystem = $filesystem;
 
 			// For now just rip the configs out of Laravel.
@@ -62,6 +52,39 @@
 		//
 		//
 		//
+
+		/**
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
+		 * @param string $slot
+		 * @param string|null $processorName
+		 * @throws \Exception
+		 * @internal param null|string $processor
+		 */
+		public function decorate(Clippable $clippable, $slot, $processorName = null) {
+
+			$clipping = $clippable->files()->inSlot($slot)->first();
+			$fileMeta = $clipping->fileMeta;
+
+			if($processorName) {
+				/** @var \Atrauzzi\Phperclip\Processor\Contract $processor */
+				$processor = app($processorName);
+				$options = ['processor' => $processorName];
+			}
+			else
+				$options = [];
+
+			if(!empty($options))
+				$resource = $this->ensureDerivative($fileMeta, $clippable, $options);
+
+			$url = $this->getPublicUri($fileMeta, $options);
+			$name = $slot . ($processor ?
+				('_' . $processor->getName())
+				: ''
+			);
+
+			$clippable->decorate($name, $url);
+
+		}
 
 		/**
 		 * Returns an internet-facing URI that can be used to download the resource.
@@ -94,8 +117,8 @@
 			$path = $this->filePath($fileMeta, $options);
 
 			// If it isn't the original and it hasn't been generated yet.
-			if(!empty($options) && !$disk->has($path))
-				$resource = $this->generateDerivative($fileMeta, $options);
+			if(count($options))
+				$resource = $this->ensureDerivative($fileMeta, $options);
 			else
 				$resource = $disk->readStream($path);
 
@@ -320,22 +343,31 @@
 		 * Load an original image locally, trigger events and then save it as a derivative.
 		 *
 		 * @param \Atrauzzi\Phperclip\Model\FileMeta $fileMeta
+		 * @param \Atrauzzi\Phperclip\Model\Clippable $clippable
 		 * @param array $options
-		 * @return false|resource
+		 * @param \Atrauzzi\Phperclip\Processor\Contract|null $processor
+		 * @return resource|null
+		 * @throws \Exception
 		 */
-		protected function generateDerivative(FileMeta $fileMeta, array $options) {
+		protected function ensureDerivative(FileMeta $fileMeta, Clippable $clippable, array $options, $processor = null) {
 
+			if(empty($options))
+				throw new Exception('Unable to create derivative, no options provided.');
+
+			// Take a local copy of the original.
 			$originalResource = $this->getResource($fileMeta);
 			$tempFile = tmpfile();
 			stream_copy_to_stream($originalResource, $tempFile);
 			rewind($tempFile);
 
-			// ToDo: Emit before-save event.
+			if(!$processor && $processor = array_get($options, 'processor'))
+				$processor = app($processor);
+
+			if($processor)
+				$processor->process($tempFile, $fileMeta, $clippable);
 
 			rewind($tempFile);
 			$this->saveFromResource($tempFile, $fileMeta, $options);
-
-			// ToDo: Emit after-save event.
 
 			return $this->getResource($fileMeta, $options);
 
