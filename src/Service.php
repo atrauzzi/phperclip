@@ -122,14 +122,7 @@
 
 			$disk = $this->getDisk()->getDriver();
 			$path = $this->filePath($fileMeta, $options);
-
-			// If it isn't the original and it hasn't been generated yet.
-			if(count($options))
-				$resource = $this->ensureDerivative($fileMeta, $options);
-			else
-				$resource = $disk->readStream($path);
-
-			return $resource;
+			return $disk->readStream($path);
 
 		}
 
