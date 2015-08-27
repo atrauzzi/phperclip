@@ -58,11 +58,14 @@
 		 * @param string $slot
 		 * @param string|null $processorName
 		 * @throws \Exception
-		 * @internal param null|string $processor
 		 */
 		public function decorate(Clippable $clippable, $slot, $processorName = null) {
 
 			$clipping = $clippable->files()->inSlot($slot)->first();
+
+			if(!$clipping)
+				return;
+
 			$fileMeta = $clipping->fileMeta;
 
 			if($processorName) {
@@ -77,9 +80,13 @@
 				$resource = $this->ensureDerivative($fileMeta, $clippable, $options);
 
 			$url = $this->getPublicUri($fileMeta, $options);
-			$name = $slot . ($processor ?
-				('_' . $processor->getName())
-				: ''
+
+			$name = sprintf('%s%s_url',
+				$slot,
+				(empty($processor) ?
+					''
+					: ('_' . $processor->getName())
+				)
 			);
 
 			$clippable->decorate($name, $url);
@@ -425,7 +432,7 @@
 		 * @return string
 		 */
 		protected function generateHash(FileMeta $fileMeta, array $options) {
-			$options['id'] = $fileMeta->getKey();
+			$options['id'] = intval($fileMeta->getKey());
 			return md5(json_encode($this->recursiveKeySort($options)));
 		}
 
