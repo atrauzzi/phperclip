@@ -32,7 +32,6 @@
 
 			$this->publishes([
 				sprintf('%s/../config/config.php', __DIR__) => config_path('phperclip.php'),
-				sprintf('%s/../config/filters.php', __DIR__) => config_path('phperclip_filters.php'),
 			], 'config');
 
 			$this->publishes([sprintf('%s/../database/migrations/', __DIR__) => base_path('/database/migrations')], 'migrations');
