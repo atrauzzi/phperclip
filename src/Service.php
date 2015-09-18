@@ -314,6 +314,8 @@
 		 */
 		public function delete(FileMeta $fileMeta, array $options = []) {
 
+			$fileMeta->clippings()->delete();
+
 			if(empty($options)) {
 				$this->getDisk()->deleteDirectory($this->fileDirectory($fileMeta, $options));
 				$fileMeta->delete();
