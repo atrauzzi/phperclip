@@ -153,16 +153,21 @@
 				$this->delete($fileMeta);
 
 			if($file && $name && !$fileMeta)
-				$fileMeta = FileMeta::named($name);
+				$fileMeta = FileMeta::named($name)->first();
 
 			//
 			//
+
+			// By this point, if we have a FileMeta, then we don't need to take a copy of what was provided.
 
 			if($file && !$fileMeta)
 				$fileMeta = $this->save($file, $name);
 
 			if(!$fileMeta)
 				throw new Exception('Unable to save file.');
+
+			//
+			//
 
 			if($clippable) {
 
