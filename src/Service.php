@@ -152,6 +152,12 @@
 			if($file && $name && $fileMeta)
 				$this->delete($fileMeta);
 
+			if($file && $name && !$fileMeta)
+				$fileMeta = FileMeta::named($name);
+
+			//
+			//
+
 			if($file && !$fileMeta)
 				$fileMeta = $this->save($file, $name);
 
