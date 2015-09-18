@@ -32,10 +32,9 @@ class CreateClippingTable extends Migration {
 
 			$table->unique(
 				[
-				'file_meta_id',
-				'clippable_id',
-				'clippable_type',
-				'slot'
+					'clippable_id',
+					'clippable_type',
+					'slot'
 				],
 				'unique_clipping'
 			);

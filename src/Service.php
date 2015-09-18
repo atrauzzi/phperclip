@@ -173,7 +173,7 @@
 			if($clippable) {
 
 				/** @var \Illuminate\Database\Eloquent\Model|\Atrauzzi\Phperclip\Model\Clippable $existingClipping */
-				if($slot && $existingClipping = Clipping::select('phperclip_clipping.*')->inSlot($slot)->named($name)->forClippable($clippable)->first()) {
+				if($slot && $existingClipping = Clipping::select('phperclip_clipping.*')->inSlot($slot)->forClippable($clippable)->first()) {
 					$existingClipping->update([
 						'slot' => null,
 					]);
