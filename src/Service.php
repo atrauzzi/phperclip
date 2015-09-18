@@ -152,6 +152,7 @@
 			if($file && $name && $fileMeta)
 				$this->delete($fileMeta);
 
+			// Check to see if the file already exists, we can deduplicate it.
 			if($file && $name && !$fileMeta)
 				$fileMeta = FileMeta::named($name)->first();
 
