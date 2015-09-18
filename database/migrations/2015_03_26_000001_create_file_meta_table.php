@@ -17,7 +17,7 @@ class CreateFileMetaTable extends Migration {
 
 			$table->increments('id');
 
-			$table->string('name')->unique();
+			$table->string('name')->unique()->nullable();
 			$table->string('disk');
 			$table->string('mime_type');
 
