@@ -136,7 +136,7 @@
 		 * @return \Atrauzzi\PhperClip\Model\FileMeta
 		 * @throws \Exception
 		 */
-		public function clip($file, $name = null, Clippable $clippable, $slot = null) {
+		public function clip($file, $name = null, Clippable $clippable, $slot = null, $mimeType = null) {
 
 			$fileMeta = null;
 
@@ -162,7 +162,7 @@
 			// By this point, if we have a FileMeta, then we don't need to take a copy of what was provided.
 
 			if($file && !$fileMeta)
-				$fileMeta = $this->save($file, $name);
+				$fileMeta = $this->save($file, $name, $mimeType);
 
 			if(!$fileMeta)
 				throw new Exception('Unable to save file.');
@@ -229,11 +229,11 @@
 		 * @return \Atrauzzi\Phperclip\Model\FileMeta
 		 * @throws \Exception
 		 */
-		public function save($file, $name = null) {
+		public function save($file, $name = null, $mimeType = null) {
 			if(filter_var($file, FILTER_VALIDATE_URL))
 				return $this->saveFromUrl($file, $name);
 			elseif(is_resource($file))
-				return $this->saveFromResource($file, $name);
+				return $this->saveFromResource($file, $mimeType, $name);
 			elseif(file_exists($file))
 				return $this->saveFromPath($file, $name);
 			else
