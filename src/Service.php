@@ -63,23 +63,27 @@
 
 			$clipping = $clippable->files()->inSlot($slot)->first();
 
-			if(!$clipping)
-				return;
+			if($clipping) {
 
-			$fileMeta = $clipping->fileMeta;
+				$fileMeta = $clipping->fileMeta;
 
-			if($processorName) {
-				/** @var \Atrauzzi\Phperclip\Processor\Contract $processor */
-				$processor = app($processorName);
-				$options = ['processor' => $processorName];
+				if($processorName) {
+					/** @var \Atrauzzi\Phperclip\Processor\Contract $processor */
+					$processor = app($processorName);
+					$options = ['processor' => $processorName];
+				}
+				else
+					$options = [];
+
+				if(!empty($options))
+					$resource = $this->ensureDerivative($fileMeta, $clippable, $options);
+
+				$url = $this->getPublicUri($fileMeta, $options);
+
 			}
-			else
-				$options = [];
-
-			if(!empty($options))
-				$resource = $this->ensureDerivative($fileMeta, $clippable, $options);
-
-			$url = $this->getPublicUri($fileMeta, $options);
+			else {
+				$url = null;
+			}
 
 			$name = sprintf('%s%s_url',
 				$slot,
